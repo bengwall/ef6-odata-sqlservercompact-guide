@@ -24,15 +24,13 @@
 
 Create a new solution following File -> New -> Project -> Web, then choose `ASP.NET Web Application`. Name it with `Catalog`. Then in the upcoming dialogue box, choose Empty and check `Web API`, click OK.
 
-Delete any files in the `Controllers` directory.
-
 ###Install NuGet packages
 
 Run the following command in the Package Manager Console.
 ```
 PM> Install-Package Microsoft.AspNet.OData
 PM> Install-Package EntityFramework
-PM> EntityFramework.SqlServerCompact 
+PM> Install-Package EntityFramework.SqlServerCompact 
 ```
 ###Create Models
 
