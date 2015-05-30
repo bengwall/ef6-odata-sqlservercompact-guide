@@ -88,7 +88,7 @@ Add controllers of type `Web API 2 OData Controller with actions, using Entity F
 - Click the `+` button to add a Data Context Class called `CatalogContext.cs`
 - Check `Use async controller actions`  (NOT SURE WE NEED WITH THIS W/ODATA)
 
-> **Note:** With **Visual Studio 2013** you may get an error when clicking `Add` to create the controller, try creating a new Data Contact Class with a different name, say `CatalogContextX`.  Then switch the Data Context Class in the new controller from `CatalogContextX` to `CatalogContext`, then delete `CatalogContextX.cs`.  Make sure all model classes are referenced in `CatalogContext.cs`.
+> **Note:** With **Visual Studio 2013** you may get an error when clicking `Add` to create the controller, try rebuilding the project before creating each controller.
 
 ### App_Start/WebApiConfig
 
