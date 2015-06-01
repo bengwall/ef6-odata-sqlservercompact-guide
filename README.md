@@ -1,11 +1,12 @@
-#Guide for .Net4 EF6 oData SqlServerCompact WebAPI
+#Guide for .Net4.5 EF6 OData WebAPI SqlServerCompact
 
 ###Versions
 
+-	Visual Studio Community 2013
 -	.Net 4.5
 -	EntityFramework 6
 -	Web API 2.2
--	oData V5
+-	OData V5
 -	SqlServerCompact 4
 
 ###Sources
