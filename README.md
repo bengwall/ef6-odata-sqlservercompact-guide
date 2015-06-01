@@ -2,7 +2,7 @@
 
 ###Versions
 
--	.Net 4
+-	.Net 4.5
 -	EntityFramework 6
 -	Web API 2.2
 -	oData V5
@@ -60,9 +60,7 @@ namespace Catalog.Models
 
         public int GroupId { get; set; }
         public virtual Group Group { get; set; }
-
     }
-
     public class Group
     {
         [Key]
@@ -76,34 +74,63 @@ namespace Catalog.Models
         public bool Active { get; set; }
 
         public virtual List<Product> Products { get; set; }
-
     }
 }
 ```
 
-### Add Controller Classes and the Data Context Class
 
-Add controllers of type `Web API 2 OData Controller with actions, using Entity Framework` for each model class.
+### App_Start/WebApiConfig.cs
 
-- Click the `+` button to add a Data Context Class called `CatalogContext.cs`
-- Check `Use async controller actions`  (NOT SURE WE NEED WITH THIS W/ODATA)
-
-> **Note:** With **Visual Studio 2013** you may get an error when clicking `Add` to create the controller, try rebuilding the project before creating each controller.
-
-### App_Start/WebApiConfig
-
-Add the following code to the end of the `Register` method:
+Change the code to the following:
 
 ```
-  ODataModelBuilder builder = new ODataConventionModelBuilder();
-  builder.EntitySet<Group>("Groups");
-  builder.EntitySet<Product>("Products");
-  config.MapODataServiceRoute(
-      routeName: "ODataRoute",
-      routePrefix: null,
-      model: builder.GetEdmModel());
+namespace Catalog
+{
+    public static class WebApiConfig
+    {
+        public static void Register(HttpConfiguration config)
+        {
+            config.Routes.MapHttpRoute(
+                name: "DefaultApi",
+                routeTemplate: "api/{controller}/{id}",
+                defaults: new { id = RouteParameter.Optional }
+            );
+           
+        }
+    }
+}
 ```
-### Setup Web.config
+
+### App_Start/ODataConfig.cs
+
+Create the following class and replace it with this code:
+
+```
+using System.Web.Http;
+using System.Web.OData.Extensions;
+using System.Web.OData.Builder;
+using Catalog.Models;
+
+namespace Catalog
+{
+    public class ODataConfig
+    {
+        public static void Register(HttpConfiguration config)
+        {
+            config.MapHttpAttributeRoutes(); //This has to be called before the following OData mapping, so also before WebApi mapping
+
+            ODataConventionModelBuilder builder = new ODataConventionModelBuilder();
+
+            builder.EntitySet<Product>("Products");
+            builder.EntitySet<Group>("Groups");
+
+            config.MapODataServiceRoute("ODataRoute", "api", builder.GetEdmModel());
+        }
+    }
+}
+```
+
+### Modify Web.config
 
 ```
 <connectionStrings>
@@ -135,15 +162,32 @@ Add the following code to the end of the `Register` method:
 Open Migrations/Configuration.cs.  Add `using Catalog.Models` and the following to the `Seed` method:
 
 ```
-context.Groups.AddOrUpdate(x => x.Id,
-    new Group() { Id = 1, Name = "Software Eng", Active=true },
-    new Group() { Id = 2, Name = "Software Eng - Infrastructure", Active = true }
-);
+namespace Catalog.Migrations
+{
+    using System.Data.Entity.Migrations;
+    using Catalog.Models;
 
-context.Products.AddOrUpdate(x => x.Id,
-    new Product() { Id = 1, Name = "WebStorm 9", GroupId = 1, Active = true },
-    new Product() { Id = 2, Name = "WebStorm 10", GroupId = 1, Active = true }
-);
+    internal sealed class Configuration : DbMigrationsConfiguration<Catalog.Models.CatalogContext>
+    {
+        public Configuration()
+        {
+            AutomaticMigrationsEnabled = false;
+        }
+
+        protected override void Seed(Catalog.Models.CatalogContext context)
+        {
+			context.Groups.AddOrUpdate(x => x.Id,
+			    new Group() { Id = 1, Name = "Software Eng", Active=true },
+			    new Group() { Id = 2, Name = "Software Eng - Infrastructure", Active = true }
+			);
+			context.Products.AddOrUpdate(x => x.Id,
+			    new Product() { Id = 1, Name = "WebStorm 9", GroupId = 1, Active = true },
+			    new Product() { Id = 2, Name = "WebStorm 10", GroupId = 1, Active = true }
+			);
+ 
+        }
+    }
+}
 ```
 
 ```
@@ -151,10 +195,47 @@ PM> Add-Migration Initial
 PM> Update-Database
 ```
 
-You should now see your data under the `App_Data` directory.  *(**Note**: You may need to click the `Show all files` icon in the Solution Explorer first.)*
+You should now see the database `Catalog.sdf` under the `App_Data` directory.  *(**Note**: You may need to click the `Show all files` icon in the Solution Explorer first.)*
 
-###Explore the API (Optional)
-
-Press F5 to run the application in debug mode. Go to `/api/products` 
+> **Note:** as you are testing your models, you can always delete all the migration steps under the `Migrations` directory and delete the database and rerun the `Add-Migration Initial` and `Update-Database` steps.
 
 
+### Explorer the Database
+
+Install the Visual Studio [SQL Server Compact & SQLite Toolbox extension](https://sqlcetoolbox.codeplex.com/documentation), connect to the database, and explorer the tables and data.
+
+
+### Add Controller Classes and the Data Context Class
+
+Add controllers of type `Web API 2 OData Controller with actions, using Entity Framework` for each model class.
+
+- Click the `+` button to add a Data Context Class called `CatalogContext.cs`
+- Check `Use async controller actions`
+
+> **Note:** With **Visual Studio 2013** you may get an error when clicking `Add` to create the controller, try rebuilding the project before creating each controller.
+
+In Visual Studio 2013, the controller references old OData 3.5 libraries.  This will give you `406` errors.  You must change all the references starting with  `System.Web.Http.OData` references to `System.Web.OData`.
+
+
+###Explore the API
+
+Press F5 to run the application in debug mode. Go to `/api/Groups` 
+
+
+###Expose the API to other devices
+
+IIS Express defaults to `localhost` and does not expose API.  Do expose it, do the following:
+
+- edit the IISExpress/config/applicationhost.config file.  Set the port to 8080.  Add the second `<binding>` element below with your hosting computers IP address.  If you have any other issues, take a look at this blog post:  http://bendetat.com/access-iis-express-from-another-machine.html
+
+```
+<site name="Catalog" id="3">
+    <application path="/" applicationPool="Clr4IntegratedAppPool">
+        <virtualDirectory path="/" physicalPath="C:\Users\bxe004\Documents\Visual Studio 2013\Projects\Catalog\Catalog" />
+    </application>
+    <bindings>
+      <binding protocol="http" bindingInformation="*:8080:localhost" />
+      <binding protocol="http" bindingInformation="*:8080:10.89.141.159" />
+    </bindings>
+</site>
+```
